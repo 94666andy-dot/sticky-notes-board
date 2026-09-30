@@ -1,0 +1,1997 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>便利貼看板 - Sticky Notes Board</title>
+  <style>
+    /* CSS Reset and Design Tokens */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --primary: #f59e0b;
+      --primary-hover: #d97706;
+      --bg-cork: #cb9b6d;
+      --text-dark: #1e293b;
+      --text-light: #f8fafc;
+      --border-color: rgba(0, 0, 0, 0.1);
+      --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, "Noto Sans TC", sans-serif;
+    }
+
+    body {
+      font-family: var(--font-family);
+      color: var(--text-dark);
+      background-color: var(--bg-cork);
+      overflow-x: hidden;
+      user-select: none;
+      -webkit-user-select: none;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Corkboard Realistic Texture */
+    .theme-cork {
+      background-color: #c99865;
+      background-image: 
+        radial-gradient(rgba(0, 0, 0, 0.13) 15%, transparent 16%),
+        radial-gradient(rgba(255, 255, 255, 0.18) 15%, transparent 16%),
+        radial-gradient(rgba(88, 51, 23, 0.15) 15%, transparent 16%);
+      background-size: 50px 50px;
+      background-position: 0 0, 25px 25px, 12px 37px;
+    }
+
+    /* Modern Light Grid Texture */
+    .theme-modern {
+      background-color: #f1f5f9;
+      background-image: 
+        linear-gradient(to right, rgba(148, 163, 184, 0.25) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(148, 163, 184, 0.25) 1px, transparent 1px);
+      background-size: 26px 26px;
+    }
+
+    /* Dark Grid Texture */
+    .theme-dark {
+      background-color: #0f172a;
+      background-image: 
+        linear-gradient(to right, rgba(51, 65, 85, 0.35) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(51, 65, 85, 0.35) 1px, transparent 1px);
+      background-size: 26px 26px;
+      color: #e2e8f0;
+    }
+
+    /* Header Styling */
+    header {
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+      padding: 8px 16px;
+      position: sticky;
+      top: 0;
+      z-index: 5000;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+    }
+    .theme-dark header {
+      background: rgba(15, 23, 42, 0.92);
+      border-bottom-color: rgba(51, 65, 85, 0.8);
+    }
+
+    .header-content {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .brand-section {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-logo {
+      width: 36px;
+      height: 36px;
+      background: #f59e0b;
+      color: #fff;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 5px rgba(245, 158, 11, 0.3);
+      transform: rotate(-3deg);
+    }
+
+    .brand-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: inherit;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .brand-badge {
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 12px;
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .theme-dark .brand-badge {
+      background: #78350f;
+      color: #fde68a;
+    }
+
+    .storage-status-badge {
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 3px 9px;
+      border-radius: 12px;
+      background: rgba(34, 197, 94, 0.15);
+      color: #15803d;
+      border: 1px solid rgba(34, 197, 94, 0.3);
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s ease;
+    }
+    .theme-dark .storage-status-badge {
+      background: rgba(34, 197, 94, 0.2);
+      color: #86efac;
+      border-color: rgba(34, 197, 94, 0.4);
+    }
+    .storage-status-badge.saving {
+      background: rgba(245, 158, 11, 0.15);
+      color: #b45309;
+      border-color: rgba(245, 158, 11, 0.3);
+    }
+
+    .search-box {
+      flex: 1;
+      max-width: 340px;
+      min-width: 180px;
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 7px 30px 7px 32px;
+      border-radius: 8px;
+      border: 1px solid #cbd5e1;
+      background: #f8fafc;
+      font-size: 0.85rem;
+      color: inherit;
+      outline: none;
+      transition: all 0.2s;
+    }
+    .theme-dark .search-input {
+      background: #1e293b;
+      border-color: #334155;
+    }
+    .search-input:focus {
+      border-color: var(--primary);
+      background: #fff;
+      box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2);
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 9px;
+      width: 15px;
+      height: 15px;
+      fill: none;
+      stroke: #94a3b8;
+      stroke-width: 2;
+      pointer-events: none;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      padding: 7px 12px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.15s ease-out;
+      background: #e2e8f0;
+      color: #334155;
+    }
+    .theme-dark .btn {
+      background: #334155;
+      color: #e2e8f0;
+    }
+    .btn:hover {
+      background: #cbd5e1;
+    }
+    .theme-dark .btn:hover {
+      background: #475569;
+    }
+
+    .btn-primary {
+      background: #f59e0b;
+      color: #ffffff;
+      box-shadow: 0 2px 4px rgba(245, 158, 11, 0.25);
+    }
+    .btn-primary:hover {
+      background: #d97706;
+      box-shadow: 0 4px 8px rgba(245, 158, 11, 0.35);
+    }
+
+    .toolbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* View Switcher Segmented Control */
+    .view-switcher {
+      display: inline-flex;
+      background: #e2e8f0;
+      padding: 3px;
+      border-radius: 9px;
+      gap: 2px;
+    }
+    .theme-dark .view-switcher {
+      background: #334155;
+    }
+    .view-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 11px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 7px;
+      background: transparent;
+      color: #64748b;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .theme-dark .view-btn {
+      color: #94a3b8;
+    }
+    .view-btn.active {
+      background: #ffffff;
+      color: #0f172a;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+    }
+    .theme-dark .view-btn.active {
+      background: #1e293b;
+      color: #f8fafc;
+    }
+
+    /* Tag Filter Strip */
+    #tagFilterBar {
+      background: rgba(15, 23, 42, 0.88);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 6px 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      overflow-x: auto;
+      z-index: 4000;
+      font-size: 0.78rem;
+    }
+
+    .tag-chip {
+      padding: 4px 10px;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: rgba(255, 255, 255, 0.08);
+      color: #e2e8f0;
+      font-weight: 500;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s;
+    }
+    .tag-chip:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+    .tag-chip.active {
+      background: #f59e0b;
+      color: #0f172a;
+      font-weight: 700;
+      border-color: #f59e0b;
+      box-shadow: 0 2px 6px rgba(245, 158, 11, 0.3);
+    }
+
+    /* Canvas Viewport */
+    #boardContainer {
+      flex: 1;
+      position: relative;
+      overflow: auto;
+      width: 100%;
+      height: calc(100vh - 105px);
+    }
+
+    #canvasViewport {
+      position: relative;
+      min-width: 2600px;
+      min-height: 1800px;
+      width: 100%;
+      height: 100%;
+      cursor: default;
+    }
+
+    /* Kanban Board View Layout */
+    #kanbanViewport {
+      display: none;
+      width: 100%;
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px 16px;
+      gap: 16px;
+      box-sizing: border-box;
+      height: 100%;
+    }
+    #kanbanViewport.active {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+    }
+    @media (max-width: 860px) {
+      #kanbanViewport.active {
+        grid-template-columns: 1fr;
+        height: auto;
+      }
+    }
+
+    .kanban-col {
+      background: rgba(255, 255, 255, 0.45);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      border-radius: 14px;
+      display: flex;
+      flex-direction: column;
+      height: calc(100vh - 150px);
+      overflow: hidden;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+    }
+    .theme-dark .kanban-col {
+      background: rgba(30, 41, 59, 0.65);
+      border-color: rgba(51, 65, 85, 0.6);
+    }
+
+    .kanban-col-header {
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+      font-weight: 700;
+      font-size: 0.9rem;
+    }
+
+    .kanban-badge {
+      font-size: 0.72rem;
+      padding: 2px 7px;
+      border-radius: 10px;
+      background: rgba(0, 0, 0, 0.1);
+    }
+
+    .kanban-cards-zone {
+      flex: 1;
+      padding: 12px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-height: 150px;
+      transition: background 0.15s ease;
+    }
+    .kanban-cards-zone.drag-over {
+      background: rgba(245, 158, 11, 0.15);
+      border: 2px dashed #f59e0b;
+      border-radius: 10px;
+    }
+
+    /* Adjust Note Styling inside Kanban */
+    .kanban-cards-zone .sticky-note {
+      position: static !important;
+      width: 100% !important;
+      min-height: auto !important;
+      transform: none !important;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08) !important;
+      margin: 0 !important;
+    }
+
+    /* Box Selection (Marquee) Tool */
+    .selection-marquee {
+      position: absolute;
+      border: 2px dashed #f59e0b;
+      background: rgba(245, 158, 11, 0.18);
+      border-radius: 6px;
+      pointer-events: none;
+      z-index: 99999;
+      display: none;
+    }
+
+    /* Sticky Note Styling */
+    .sticky-note {
+      position: absolute;
+      width: 250px;
+      min-height: 180px;
+      border-radius: 10px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-shadow: 2px 4px 12px rgba(0, 0, 0, 0.14), 0 1px 3px rgba(0, 0, 0, 0.08);
+      transition: box-shadow 0.15s ease-out, transform 0.1s ease-out, outline 0.15s ease-out;
+      touch-action: none;
+      user-select: none;
+    }
+
+    .sticky-note:hover {
+      box-shadow: 4px 8px 18px rgba(0, 0, 0, 0.18), 0 2px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .sticky-note.is-dragging {
+      box-shadow: 16px 28px 45px rgba(0, 0, 0, 0.32), 0 6px 14px rgba(0, 0, 0, 0.2) !important;
+      transform: scale(1.04) rotate(0deg) !important;
+      opacity: 0.94;
+      z-index: 999999 !important;
+      cursor: grabbing !important;
+    }
+
+    .sticky-note.is-selected {
+      outline: 3px solid #3b82f6 !important;
+      box-shadow: 0 0 0 6px rgba(59, 130, 246, 0.3), 0 10px 24px rgba(0, 0, 0, 0.25) !important;
+    }
+
+    /* Note Color Variations */
+    .note-yellow { background: linear-gradient(135deg, #fff9a6 0%, #fff275 100%); color: #3f3900; border-top: 5px solid #facc15; }
+    .note-pink { background: linear-gradient(135deg, #ffd1dc 0%, #ffb3c6 100%); color: #4a1525; border-top: 5px solid #f472b6; }
+    .note-blue { background: linear-gradient(135deg, #caf0f8 0%, #90e0ef 100%); color: #033440; border-top: 5px solid #38bdf8; }
+    .note-green { background: linear-gradient(135deg, #d8f3dc 0%, #b7e4c7 100%); color: #133c20; border-top: 5px solid #4ade80; }
+    .note-orange { background: linear-gradient(135deg, #ffe5d9 0%, #ffcad4 100%); color: #431407; border-top: 5px solid #fb923c; }
+    .note-purple { background: linear-gradient(135deg, #ede7f6 0%, #d1c4e9 100%); color: #311b92; border-top: 5px solid #a78bfa; }
+
+    /* Pushpin Top Attachment */
+    .pushpin-btn {
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 24px;
+      height: 24px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      filter: drop-shadow(1px 2px 2px rgba(0, 0, 0, 0.4));
+      transition: transform 0.15s ease;
+      z-index: 10;
+    }
+    .pushpin-btn:hover {
+      transform: translateX(-50%) scale(1.15);
+    }
+
+    /* Top Drag Handle Header */
+    .note-drag-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+      padding-bottom: 4px;
+      margin-bottom: 6px;
+      cursor: grab;
+    }
+    .note-drag-bar:active {
+      cursor: grabbing;
+    }
+    .note-drag-label {
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      opacity: 0.6;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      cursor: grab;
+      user-select: none;
+    }
+    .note-drag-label:active {
+      cursor: grabbing;
+    }
+
+    .note-time-label {
+      font-size: 0.68rem;
+      color: rgba(0, 0, 0, 0.45);
+      font-weight: 500;
+      margin-left: 6px;
+      white-space: nowrap;
+    }
+
+    .note-actions {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .icon-btn {
+      background: transparent;
+      border: none;
+      padding: 3px;
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: rgba(0, 0, 0, 0.6);
+      transition: background 0.15s, color 0.15s;
+    }
+    .icon-btn * {
+      pointer-events: none;
+    }
+    .icon-btn:hover {
+      background: rgba(0, 0, 0, 0.08);
+      color: rgba(0, 0, 0, 0.9);
+    }
+    .icon-btn.delete:hover {
+      background: rgba(239, 68, 68, 0.18);
+      color: #b91c1c;
+    }
+
+    /* Note Content & Editable Areas */
+    .note-title-input {
+      font-weight: 700;
+      font-size: 0.9rem;
+      padding: 2px 4px;
+      border-radius: 4px;
+      outline: none;
+      border: 1px solid transparent;
+      margin-bottom: 4px;
+      user-select: text;
+      -webkit-user-select: text;
+    }
+    .note-title-input:focus {
+      background: rgba(255, 255, 255, 0.6);
+      border-color: rgba(0, 0, 0, 0.15);
+    }
+
+    .note-body-text {
+      font-size: 0.82rem;
+      line-height: 1.45;
+      min-height: 50px;
+      max-height: 160px;
+      overflow-y: auto;
+      padding: 3px 4px;
+      border-radius: 4px;
+      outline: none;
+      white-space: pre-wrap;
+      user-select: text;
+      -webkit-user-select: text;
+      border: 1px solid transparent;
+    }
+    .note-body-text:focus {
+      background: rgba(255, 255, 255, 0.5);
+      border-color: rgba(0, 0, 0, 0.15);
+    }
+
+    /* Checklist Mode Items */
+    .checklist-container {
+      max-height: 160px;
+      overflow-y: auto;
+      margin: 4px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .checklist-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.78rem;
+    }
+    .checklist-row input[type="checkbox"] {
+      cursor: pointer;
+      width: 14px;
+      height: 14px;
+      accent-color: #f59e0b;
+    }
+    .checklist-text {
+      flex: 1;
+      outline: none;
+      user-select: text;
+      -webkit-user-select: text;
+    }
+    .checklist-text.done {
+      text-decoration: line-through;
+      opacity: 0.5;
+    }
+
+    .checklist-add-input {
+      width: 100%;
+      padding: 4px 6px;
+      font-size: 0.75rem;
+      border-radius: 4px;
+      border: 1px solid rgba(0, 0, 0, 0.12);
+      background: rgba(255, 255, 255, 0.5);
+      outline: none;
+      margin-top: 4px;
+    }
+
+    /* Note Bottom Footer */
+    .note-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 1px solid rgba(0, 0, 0, 0.08);
+      padding-top: 6px;
+      margin-top: 6px;
+    }
+
+    .tag-badge {
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 10px;
+      background: rgba(0, 0, 0, 0.08);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      transition: background 0.15s;
+    }
+    .tag-badge:hover {
+      background: rgba(0, 0, 0, 0.15);
+    }
+
+    .color-swatches {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+    }
+    .swatch-btn {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 1px solid rgba(0, 0, 0, 0.2);
+      cursor: pointer;
+      transition: transform 0.15s;
+    }
+    .swatch-btn:hover {
+      transform: scale(1.3);
+    }
+
+    /* Floating Multi-select Batch Toolbar */
+    #batchToolbar {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: #0f172a;
+      color: #fff;
+      padding: 8px 18px;
+      border-radius: 14px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      z-index: 10000;
+      font-size: 0.84rem;
+      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    #batchToolbar.show {
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* Modals & Dialogs */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 99999;
+    }
+    .modal-overlay.hidden {
+      display: none;
+    }
+    .modal-box {
+      background: #ffffff;
+      color: #1e293b;
+      width: 90%;
+      max-width: 380px;
+      border-radius: 14px;
+      padding: 18px;
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.25);
+    }
+    .theme-dark .modal-box {
+      background: #1e293b;
+      color: #f8fafc;
+    }
+
+    /* Dropdown Menus */
+    .dropdown-menu {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 6px);
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+      padding: 6px;
+      display: none;
+      flex-direction: column;
+      min-width: 160px;
+      z-index: 9000;
+    }
+    .theme-dark .dropdown-menu {
+      background: #1e293b;
+      border-color: #334155;
+    }
+    .dropdown-menu.show {
+      display: flex;
+    }
+    .dropdown-item {
+      padding: 7px 10px;
+      font-size: 0.78rem;
+      font-weight: 500;
+      background: transparent;
+      border: none;
+      text-align: left;
+      border-radius: 6px;
+      cursor: pointer;
+      color: inherit;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .dropdown-item:hover {
+      background: #f1f5f9;
+    }
+    .theme-dark .dropdown-item:hover {
+      background: #334155;
+    }
+
+    /* Toast Notification */
+    #toast {
+      position: fixed;
+      top: 18px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-30px);
+      background: #0f172a;
+      color: #fff;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.25);
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.25s ease;
+      z-index: 100000;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    #toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+  </style>
+</head>
+<body class="theme-cork" id="appBody">
+
+  <header>
+    <div class="header-content">
+      
+      <!-- Brand Title -->
+      <div class="brand-section">
+        <div class="brand-logo">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8Z"></path>
+            <path d="M15 3v5h5"></path>
+          </svg>
+        </div>
+        <div>
+          <div class="brand-title">
+            便籤看板
+            <span class="brand-badge" id="noteCountBadge">0 便籤</span>
+            <span class="storage-status-badge" id="storageIndicator">
+              <span style="display:inline-block; width:6px; height:6px; border-radius:50%; background:#22c55e;"></span>
+              LocalStorage 已同步
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Search Input -->
+      <div class="search-box">
+        <svg class="search-icon" viewBox="0 0 24 24">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input type="text" id="searchInput" class="search-input" placeholder="搜尋便籤內容、標題或 #標籤...">
+      </div>
+
+      <!-- View Switcher (畫布 / 看板) -->
+      <div class="view-switcher" id="viewSwitcher">
+        <button id="viewCanvasBtn" class="view-btn active" onclick="switchViewMode('canvas')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+            <path d="M21 15l-5-5L5 21"></path>
+          </svg>
+          自由畫布
+        </button>
+        <button id="viewKanbanBtn" class="view-btn" onclick="switchViewMode('kanban')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="5" height="18" rx="1"></rect>
+            <rect x="10" y="3" width="5" height="12" rx="1"></rect>
+            <rect x="17" y="3" width="5" height="15" rx="1"></rect>
+          </svg>
+          分類看板
+        </button>
+      </div>
+
+      <!-- Action Toolbar -->
+      <div class="toolbar-actions">
+        <!-- New Note Button -->
+        <button id="addNoteBtn" class="btn btn-primary" title="新增一張便利貼">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          <span>新便利貼</span>
+        </button>
+
+        <!-- Snap to Grid Toggle -->
+        <button id="snapToggleBtn" class="btn" title="切換網格吸附對齊">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7"></rect>
+            <rect x="14" y="3" width="7" height="7"></rect>
+            <rect x="14" y="14" width="7" height="7"></rect>
+            <rect x="3" y="14" width="7" height="7"></rect>
+          </svg>
+          <span id="snapStatusLabel">自由擺放</span>
+        </button>
+
+        <!-- Background Theme Dropdown -->
+        <div style="position: relative;">
+          <button id="themeToggleBtn" class="btn" title="切換看板風格">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="M12 2a10 10 0 0 0 0 20v-20z"></path>
+            </svg>
+            <span>風格</span>
+          </button>
+          <div id="themeMenu" class="dropdown-menu">
+            <button class="dropdown-item" onclick="setAppTheme('cork')">🪵 經典軟木塞板</button>
+            <button class="dropdown-item" onclick="setAppTheme('modern')">◻️ 現代方格白板</button>
+            <button class="dropdown-item" onclick="setAppTheme('dark')">🌙 極簡暗黑模式</button>
+          </div>
+        </div>
+
+        <!-- Data Management Menu -->
+        <div style="position: relative;">
+          <button id="moreActionsBtn" class="btn" title="更多備份操作">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="1"></circle>
+              <circle cx="19" cy="12" r="1"></circle>
+              <circle cx="5" cy="12" r="1"></circle>
+            </svg>
+          </button>
+          <div id="moreMenu" class="dropdown-menu">
+            <button class="dropdown-item" onclick="exportDataJSON()">📥 匯出備份 (JSON)</button>
+            <label class="dropdown-item" style="cursor: pointer;">
+              📤 匯入備份 (JSON)
+              <input type="file" id="importFileInput" accept=".json" style="display:none;" onchange="importDataJSON(event)">
+            </label>
+            <button class="dropdown-item" onclick="loadSamplePresets()">✨ 載入範例便籤</button>
+            <button class="dropdown-item" onclick="clearAllData()" style="color: #ef4444;">🗑️ 清空所有便籤</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </header>
+
+  <!-- Tag Filter Bar -->
+  <div id="tagFilterBar">
+    <span style="color: #fbbf24; font-weight: bold; display: flex; align-items: center; gap: 4px;">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+        <line x1="7" y1="7" x2="7.01" y2="7"></line>
+      </svg>
+      標籤：
+    </span>
+    <div id="tagChipsContainer" style="display: flex; align-items: center; gap: 6px;"></div>
+  </div>
+
+  <main id="boardContainer">
+    <!-- Freeform Canvas Mode -->
+    <div id="canvasViewport">
+      <!-- Notes injected dynamically -->
+      <!-- Visual Marquee Box for Drag-to-Select -->
+      <div id="selectionMarquee" class="selection-marquee"></div>
+    </div>
+
+    <!-- 3-Column Kanban Board Mode -->
+    <div id="kanbanViewport">
+      <!-- Column 1: To Do -->
+      <div class="kanban-col">
+        <div class="kanban-col-header">
+          <span>📌 待處理</span>
+          <span class="kanban-badge" id="countTodo">0</span>
+        </div>
+        <div class="kanban-cards-zone" id="kanbanZone_todo" ondragover="handleKanbanDragOver(event)" ondragleave="handleKanbanDragLeave(event)" ondrop="handleKanbanDrop(event, 'todo')"></div>
+      </div>
+
+      <!-- Column 2: In Progress -->
+      <div class="kanban-col">
+        <div class="kanban-col-header">
+          <span>🚀 進行中</span>
+          <span class="kanban-badge" id="countDoing">0</span>
+        </div>
+        <div class="kanban-cards-zone" id="kanbanZone_doing" ondragover="handleKanbanDragOver(event)" ondragleave="handleKanbanDragLeave(event)" ondrop="handleKanbanDrop(event, 'doing')"></div>
+      </div>
+
+      <!-- Column 3: Done -->
+      <div class="kanban-col">
+        <div class="kanban-col-header">
+          <span>✅ 已完成</span>
+          <span class="kanban-badge" id="countDone">0</span>
+        </div>
+        <div class="kanban-cards-zone" id="kanbanZone_done" ondragover="handleKanbanDragOver(event)" ondragleave="handleKanbanDragLeave(event)" ondrop="handleKanbanDrop(event, 'done')"></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Floating Multi-select Batch Toolbar -->
+  <div id="batchToolbar">
+    <span id="batchCountText" style="font-weight: bold; color: #fbbf24;">已選取 0 張</span>
+    <div style="display: flex; gap: 6px;">
+      <button class="btn" style="padding: 4px 8px; font-size: 0.75rem;" onclick="batchChangeColor('yellow')">🟡</button>
+      <button class="btn" style="padding: 4px 8px; font-size: 0.75rem;" onclick="batchChangeColor('green')">🟢</button>
+      <button class="btn" style="padding: 4px 8px; font-size: 0.75rem;" onclick="batchChangeColor('pink')">🌸</button>
+      <button class="btn" style="padding: 4px 8px; font-size: 0.75rem;" onclick="batchChangeColor('blue')">🔵</button>
+      <button class="btn" style="padding: 4px 8px; font-size: 0.75rem;" onclick="batchTogglePin()">📌 釘選/解除</button>
+      <button class="btn" style="padding: 4px 8px; font-size: 0.75rem; background: #dc2626; color: white;" onclick="batchDeleteNotes()">🗑️ 刪除</button>
+      <button class="btn" style="padding: 4px 8px; font-size: 0.75rem;" onclick="clearSelection()">✕ 取消</button>
+    </div>
+  </div>
+
+  <!-- Tag Picker Modal -->
+  <div id="tagPickerModal" class="modal-overlay hidden" onclick="if(event.target === this) closeTagPicker()">
+    <div class="modal-box">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <strong style="font-size: 0.95rem;">🏷️ 選擇或設定便籤標籤</strong>
+        <button class="icon-btn" onclick="closeTagPicker()">✕</button>
+      </div>
+      <div style="font-size: 0.75rem; opacity: 0.7; margin-bottom: 6px;">快速套用常用標籤：</div>
+      <div id="quickTagList" style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px;"></div>
+      
+      <div style="font-size: 0.75rem; opacity: 0.7; margin-bottom: 4px;">或自訂新標籤：</div>
+      <div style="display: flex; gap: 6px;">
+        <input type="text" id="customTagInput" placeholder="輸入標籤名稱..." class="checklist-add-input" style="flex:1; margin-top:0;" onkeydown="if(event.key==='Enter') submitTagPicker()">
+        <button class="btn btn-primary" onclick="submitTagPicker()" style="padding: 4px 12px; font-size: 0.78rem;">套用</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Element -->
+  <div id="toast">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2.5">
+      <circle cx="12" cy="12" r="10"></circle>
+      <line x1="12" y1="8" x2="12" y2="12"></line>
+      <line x1="12" y1="16" x2="12.01" y2="16"></line>
+    </svg>
+    <span id="toastMsg">訊息</span>
+  </div>
+
+  <script>
+    /* State Model Definition */
+    const STATE = {
+      notes: [],
+      selectedNoteIds: new Set(),
+      viewMode: 'canvas', // 'canvas' | 'kanban'
+      snapToGrid: false,
+      gridStep: 30,
+      activeTagFilter: null,
+      searchQuery: '',
+      theme: 'cork',
+      maxZIndex: 200,
+      activeTaggingId: null,
+      draggedKanbanNoteId: null
+    };
+
+    const NOTE_COLORS = [
+      { id: 'yellow', hex: '#facc15', label: '黃色' },
+      { id: 'pink', hex: '#f472b6', label: '粉紅' },
+      { id: 'blue', hex: '#38bdf8', label: '天藍' },
+      { id: 'green', hex: '#4ade80', label: '草綠' },
+      { id: 'orange', hex: '#fb923c', label: '暖橙' },
+      { id: 'purple', hex: '#a78bfa', label: '薰紫' }
+    ];
+
+    const PRESET_TAGS = ['工作', '生活', '急件', '想法', '待辦', '指南'];
+
+    /* LocalStorage Synchronizer */
+    function saveToLocalStorage() {
+      const indicator = document.getElementById('storageIndicator');
+      if (indicator) {
+        indicator.innerHTML = '<span style="display:inline-block; width:6px; height:6px; border-radius:50%; background:#f59e0b;"></span> 儲存中...';
+        indicator.classList.add('saving');
+      }
+
+      try {
+        localStorage.setItem('sn_board_notes_v3', JSON.stringify(STATE.notes));
+        localStorage.setItem('sn_board_theme_v3', STATE.theme);
+        localStorage.setItem('sn_board_snap_v3', JSON.stringify(STATE.snapToGrid));
+        localStorage.setItem('sn_board_view_v3', STATE.viewMode);
+      } catch (err) {
+        console.error('LocalStorage 儲存失敗:', err);
+      }
+
+      setTimeout(() => {
+        if (indicator) {
+          indicator.innerHTML = '<span style="display:inline-block; width:6px; height:6px; border-radius:50%; background:#22c55e;"></span> LocalStorage 已同步';
+          indicator.classList.remove('saving');
+        }
+      }, 250);
+    }
+
+    function formatTimestamp(timestamp) {
+      if (!timestamp) return '';
+      const d = new Date(timestamp);
+      const m = d.getMonth() + 1;
+      const day = d.getDate();
+      const h = String(d.getHours()).padStart(2, '0');
+      const min = String(d.getMinutes()).padStart(2, '0');
+      return `${m}/${day} ${h}:${min}`;
+    }
+
+    function loadFromLocalStorage() {
+      try {
+        const rawNotes = localStorage.getItem('sn_board_notes_v3');
+        if (rawNotes) {
+          STATE.notes = JSON.parse(rawNotes);
+        } else {
+          loadDefaultDemoNotes();
+        }
+
+        const rawTheme = localStorage.getItem('sn_board_theme_v3');
+        if (rawTheme) setAppTheme(rawTheme, false);
+
+        const rawSnap = localStorage.getItem('sn_board_snap_v3');
+        if (rawSnap !== null) {
+          STATE.snapToGrid = JSON.parse(rawSnap);
+          updateSnapButtonUI();
+        }
+
+        const rawView = localStorage.getItem('sn_board_view_v3');
+        if (rawView === 'kanban' || rawView === 'canvas') {
+          STATE.viewMode = rawView;
+        }
+      } catch (err) {
+        console.warn('載入失敗，還原預設:', err);
+        loadDefaultDemoNotes();
+      }
+    }
+
+    function switchViewMode(mode) {
+      STATE.viewMode = mode;
+      document.getElementById('viewCanvasBtn').classList.toggle('active', mode === 'canvas');
+      document.getElementById('viewKanbanBtn').classList.toggle('active', mode === 'kanban');
+      
+      const snapBtn = document.getElementById('snapToggleBtn');
+      if (mode === 'kanban') {
+        snapBtn.style.display = 'none';
+      } else {
+        snapBtn.style.display = 'inline-flex';
+      }
+
+      saveToLocalStorage();
+      renderBoard();
+      showToast(mode === 'canvas' ? '已切換至「自由畫布模式」' : '已切換至「分類看板模式」');
+    }
+
+    function renderBoard() {
+      const canvasViewport = document.getElementById('canvasViewport');
+      const kanbanViewport = document.getElementById('kanbanViewport');
+      
+      // Update UI tabs
+      document.getElementById('viewCanvasBtn').classList.toggle('active', STATE.viewMode === 'canvas');
+      document.getElementById('viewKanbanBtn').classList.toggle('active', STATE.viewMode === 'kanban');
+      document.getElementById('snapToggleBtn').style.display = STATE.viewMode === 'kanban' ? 'none' : 'inline-flex';
+
+      // Filtering
+      const query = STATE.searchQuery.toLowerCase().trim();
+      const filteredNotes = STATE.notes.filter(note => {
+        const matchTag = !STATE.activeTagFilter || note.tag === STATE.activeTagFilter;
+        if (!matchTag) return false;
+        if (!query) return true;
+
+        const matchTitle = (note.title || '').toLowerCase().includes(query);
+        const matchContent = (note.content || '').toLowerCase().includes(query);
+        const matchNoteTag = (note.tag || '').toLowerCase().includes(query);
+        const matchChecks = note.checkItems && note.checkItems.some(item => item.text.toLowerCase().includes(query));
+        return matchTitle || matchContent || matchNoteTag || matchChecks;
+      });
+
+      document.getElementById('noteCountBadge').textContent = `${STATE.notes.length} 便籤`;
+
+      if (STATE.viewMode === 'canvas') {
+        canvasViewport.style.display = 'block';
+        kanbanViewport.classList.remove('active');
+
+        // Preserve marquee element
+        const marquee = document.getElementById('selectionMarquee');
+        canvasViewport.innerHTML = '';
+        canvasViewport.appendChild(marquee);
+
+        filteredNotes.forEach(note => {
+          const el = createNoteElement(note, false);
+          canvasViewport.appendChild(el);
+        });
+      } else {
+        canvasViewport.style.display = 'none';
+        kanbanViewport.classList.add('active');
+
+        const zoneTodo = document.getElementById('kanbanZone_todo');
+        const zoneDoing = document.getElementById('kanbanZone_doing');
+        const zoneDone = document.getElementById('kanbanZone_done');
+
+        zoneTodo.innerHTML = '';
+        zoneDoing.innerHTML = '';
+        zoneDone.innerHTML = '';
+
+        let countTodo = 0, countDoing = 0, countDone = 0;
+
+        filteredNotes.forEach(note => {
+          const status = note.status || 'todo';
+          const el = createNoteElement(note, true);
+          el.setAttribute('draggable', 'true');
+          el.addEventListener('dragstart', (e) => {
+            STATE.draggedKanbanNoteId = note.id;
+            e.dataTransfer.setData('text/plain', note.id);
+          });
+
+          if (status === 'doing') {
+            zoneDoing.appendChild(el);
+            countDoing++;
+          } else if (status === 'done') {
+            zoneDone.appendChild(el);
+            countDone++;
+          } else {
+            zoneTodo.appendChild(el);
+            countTodo++;
+          }
+        });
+
+        document.getElementById('countTodo').textContent = countTodo;
+        document.getElementById('countDoing').textContent = countDoing;
+        document.getElementById('countDone').textContent = countDone;
+      }
+
+      renderTagChips();
+      updateBatchToolbar();
+    }
+
+    /* Kanban Drag and Drop */
+    function handleKanbanDragOver(e) {
+      e.preventDefault();
+      e.currentTarget.classList.add('drag-over');
+    }
+    function handleKanbanDragLeave(e) {
+      e.currentTarget.classList.remove('drag-over');
+    }
+    function handleKanbanDrop(e, targetStatus) {
+      e.preventDefault();
+      e.currentTarget.classList.remove('drag-over');
+      const noteId = e.dataTransfer.getData('text/plain') || STATE.draggedKanbanNoteId;
+      if (noteId) {
+        const note = STATE.notes.find(n => n.id === noteId);
+        if (note && note.status !== targetStatus) {
+          note.status = targetStatus;
+          saveToLocalStorage();
+          renderBoard();
+        }
+      }
+      STATE.draggedKanbanNoteId = null;
+    }
+
+    function createNoteElement(note, isKanbanMode = false) {
+      const card = document.createElement('div');
+      card.id = isKanbanMode ? `kanban_${note.id}` : note.id;
+      card.className = `sticky-note note-${note.color} ${!isKanbanMode && STATE.selectedNoteIds.has(note.id) ? 'is-selected' : ''}`;
+      
+      if (!isKanbanMode) {
+        card.style.left = `${note.x}px`;
+        card.style.top = `${note.y}px`;
+        card.style.transform = `rotate(${note.rotation || 0}deg)`;
+        card.style.zIndex = note.zIndex || 10;
+      }
+
+      // Color dots HTML
+      const swatchesHTML = NOTE_COLORS.map(c => `
+        <button class="swatch-btn" style="background-color: ${c.hex};" onclick="setNoteColor('${note.id}', '${c.id}', event)" title="${c.label}"></button>
+      `).join('');
+
+      // Pin icon
+      const pinColor = note.isPinned ? '#ef4444' : '#94a3b8';
+
+      // Checklist vs Text content
+      let contentSection = '';
+      if (note.isChecklist) {
+        const items = (note.checkItems || []).map((item, idx) => `
+          <div class="checklist-row">
+            <input type="checkbox" ${item.done ? 'checked' : ''} onchange="toggleCheckItem('${note.id}', ${idx}, this.checked)">
+            <span class="checklist-text ${item.done ? 'done' : ''}" contenteditable="true" onblur="updateCheckText('${note.id}', ${idx}, this.innerText)">${escapeHTML(item.text)}</span>
+            <button class="icon-btn delete" onclick="deleteCheckItem('${note.id}', ${idx})">✕</button>
+          </div>
+        `).join('');
+
+        contentSection = `
+          <div class="checklist-container">${items}</div>
+        <input type="text" placeholder="新增清單項目 (Enter)..." class="checklist-add-input" onkeydown="if(event.key==='Enter'){addCheckItem('${note.id}', this.value); this.value='';}">
+      `;
+    } else {
+      contentSection = `
+        <div class="note-body-text" contenteditable="true" oninput="liveUpdateNoteBody('${note.id}', this.innerText)" onblur="updateNoteBody('${note.id}', this.innerText)" placeholder="輸入便利貼內容...">${escapeHTML(note.content)}</div>
+      `;
+    }
+
+    // Tag badge
+    const tagHTML = note.tag ? `
+      <span class="tag-badge" onclick="openTagPicker('${note.id}', event)" title="點擊修改標籤">
+        #${escapeHTML(note.tag)}
+        <span style="opacity:0.6; margin-left:2px;" onclick="setNoteTag('${note.id}', '', event)">✕</span>
+      </span>
+    ` : `
+      <span class="tag-badge" onclick="openTagPicker('${note.id}', event)" style="opacity: 0.7;">
+        +標籤
+      </span>
+    `;
+
+    const timeString = formatTimestamp(note.updatedAt || note.createdAt);
+
+    // Status selector for kanban
+    const statusSelector = isKanbanMode ? `
+      <select style="font-size: 0.7rem; border-radius: 4px; border: 1px solid rgba(0,0,0,0.15); background: transparent; padding: 1px 4px; margin-left: 4px;" onchange="updateNoteStatus('${note.id}', this.value)">
+        <option value="todo" ${note.status === 'todo' ? 'selected' : ''}>待處理</option>
+        <option value="doing" ${note.status === 'doing' ? 'selected' : ''}>進行中</option>
+        <option value="done" ${note.status === 'done' ? 'selected' : ''}>已完成</option>
+      </select>
+    ` : '';
+
+    card.innerHTML = `
+      ${!isKanbanMode ? `
+        <button class="pushpin-btn" onclick="togglePin('${note.id}', event)" title="${note.isPinned ? '已釘選固定 (點擊解除)' : '點擊圖釘以固定位置'}">
+          <svg viewBox="0 0 24 24" width="24" height="24">
+            <circle cx="12" cy="7" r="5" fill="${pinColor}" stroke="#475569" stroke-width="1.2"/>
+            <polygon points="11,12 13,12 12,22" fill="#64748b"/>
+          </svg>
+        </button>
+      ` : ''}
+
+      <div class="note-drag-bar">
+        <div class="note-drag-label">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+            <circle cx="6" cy="6" r="2"></circle><circle cx="12" cy="6" r="2"></circle><circle cx="18" cy="6" r="2"></circle>
+            <circle cx="6" cy="18" r="2"></circle><circle cx="12" cy="18" r="2"></circle><circle cx="18" cy="18" r="2"></circle>
+          </svg>
+          ${isKanbanMode ? '拖曳移欄' : (note.isPinned ? '已鎖定' : '自由拖曳')}
+          ${statusSelector}
+        </div>
+        <div class="note-actions">
+          <button class="icon-btn" onpointerdown="event.stopPropagation()" onclick="toggleChecklist('${note.id}', event)" title="切換待辦清單/純文字">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+            </svg>
+          </button>
+          <button class="icon-btn" onpointerdown="event.stopPropagation()" onclick="duplicateNote('${note.id}', event)" title="複製便籤">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+          </button>
+          <button class="icon-btn delete" onpointerdown="event.stopPropagation()" onclick="deleteNote('${note.id}', event)" title="刪除便籤">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="note-title-input" contenteditable="true" oninput="liveUpdateNoteTitle('${note.id}', this.innerText)" onblur="updateNoteTitle('${note.id}', this.innerText)" placeholder="便籤標題...">${escapeHTML(note.title)}</div>
+
+      ${contentSection}
+
+      <div class="note-footer">
+        <div style="display: flex; align-items: center;">
+          ${tagHTML}
+          <span class="note-time-label">${timeString}</span>
+        </div>
+        <div class="color-swatches">${swatchesHTML}</div>
+      </div>
+    `;
+
+    if (!isKanbanMode) {
+      attachNoteDrag(card, note);
+    }
+    return card;
+  }
+
+  let autosaveTimer = null;
+  function triggerDebouncedSave() {
+    clearTimeout(autosaveTimer);
+    autosaveTimer = setTimeout(() => {
+      saveToLocalStorage();
+    }, 300);
+  }
+
+  function liveUpdateNoteTitle(id, title) {
+    const n = STATE.notes.find(item => item.id === id);
+    if (n) {
+      n.title = title;
+      n.updatedAt = Date.now();
+      triggerDebouncedSave();
+    }
+  }
+
+  function updateNoteTitle(id, title) {
+    const n = STATE.notes.find(item => item.id === id);
+    if (n) {
+      n.title = title;
+      n.updatedAt = Date.now();
+      saveToLocalStorage();
+    }
+  }
+
+  function liveUpdateNoteBody(id, content) {
+    const n = STATE.notes.find(item => item.id === id);
+    if (n) {
+      n.content = content;
+      n.updatedAt = Date.now();
+      triggerDebouncedSave();
+    }
+  }
+
+  function updateNoteBody(id, content) {
+    const n = STATE.notes.find(item => item.id === id);
+    if (n) {
+      n.content = content;
+      n.updatedAt = Date.now();
+      saveToLocalStorage();
+    }
+  }
+
+  function setNoteColor(id, colorId, event) {
+      if (event) event.stopPropagation();
+      const n = STATE.notes.find(item => item.id === id);
+      if (n) {
+        n.color = colorId;
+        saveToLocalStorage();
+        renderBoard();
+      }
+    }
+
+    function setAppTheme(themeName, save = true) {
+      STATE.theme = themeName;
+      const body = document.getElementById('appBody');
+      body.className = `theme-${themeName}`;
+      closeDropdowns();
+      if (save) {
+        saveToLocalStorage();
+        showToast(`已切換風格：${themeName === 'cork' ? '軟木塞' : themeName === 'modern' ? '現代方格' : '暗黑模式'}`);
+      }
+    }
+
+    function updateSnapButtonUI() {
+      const label = document.getElementById('snapStatusLabel');
+      if (label) {
+        label.textContent = STATE.snapToGrid ? '網格吸附' : '自由擺放';
+      }
+    }
+
+    function addNewNote(x, y) {
+      const container = document.getElementById('boardContainer');
+      const posX = x !== undefined ? x : (container.scrollLeft + 120 + Math.random() * 80);
+      const posY = y !== undefined ? y : (container.scrollTop + 80 + Math.random() * 60);
+
+      const newNote = {
+        id: 'note_' + Date.now(),
+        title: '新便利貼',
+        content: '',
+        color: NOTE_COLORS[Math.floor(Math.random() * NOTE_COLORS.length)].id,
+        x: Math.round(posX),
+        y: Math.round(posY),
+        rotation: (Math.random() * 4 - 2),
+        isPinned: false,
+        status: 'todo',
+        tag: '',
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        zIndex: ++STATE.maxZIndex
+      };
+
+      STATE.notes.push(newNote);
+      saveToLocalStorage();
+      renderBoard();
+      showToast('已新增便利貼！');
+    }
+
+    function attachNoteDrag(el, note) {
+      let isDragging = false;
+      let startX = 0;
+      let startY = 0;
+      let initX = 0;
+      let initY = 0;
+
+      el.addEventListener('pointerdown', (e) => {
+        // Prevent drag on inputs, buttons, checklist items or when note is pinned
+        if (note.isPinned) return;
+        if (e.target.closest('button') || ['INPUT', 'BUTTON', 'SELECT', 'TEXTAREA'].includes(e.target.tagName)) return;
+        if (e.target.isContentEditable) return;
+        if (e.target.closest('.checklist-row') || e.target.closest('.swatch-btn') || e.target.closest('.tag-badge')) return;
+
+        isDragging = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        initX = note.x;
+        initY = note.y;
+
+        note.zIndex = ++STATE.maxZIndex;
+        el.style.zIndex = note.zIndex;
+        el.classList.add('is-dragging');
+        el.setPointerCapture(e.pointerId);
+        e.stopPropagation();
+      });
+
+      el.addEventListener('pointermove', (e) => {
+        if (!isDragging) return;
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+
+        let targetX = initX + dx;
+        let targetY = initY + dy;
+
+        if (STATE.snapToGrid) {
+          targetX = Math.round(targetX / STATE.gridStep) * STATE.gridStep;
+          targetY = Math.round(targetY / STATE.gridStep) * STATE.gridStep;
+        }
+
+        targetX = Math.max(10, targetX);
+        targetY = Math.max(10, targetY);
+
+        note.x = targetX;
+        note.y = targetY;
+        el.style.left = `${targetX}px`;
+        el.style.top = `${targetY}px`;
+      });
+
+      const stopDrag = (e) => {
+        if (!isDragging) return;
+        isDragging = false;
+        el.classList.remove('is-dragging');
+        try {
+          el.releasePointerCapture(e.pointerId);
+        } catch (_) {}
+        note.updatedAt = Date.now();
+        saveToLocalStorage();
+      };
+
+      el.addEventListener('pointerup', stopDrag);
+      el.addEventListener('pointercancel', stopDrag);
+    }
+
+    function setupCanvasMarqueeAndInteraction() {
+      const canvas = document.getElementById('canvasViewport');
+      const marquee = document.getElementById('selectionMarquee');
+      let isSelecting = false;
+      let startX = 0, startY = 0;
+
+      canvas.addEventListener('dblclick', (e) => {
+        if (e.target !== canvas) return;
+        const rect = canvas.getBoundingClientRect();
+        const posX = e.clientX - rect.left;
+        const posY = e.clientY - rect.top;
+        addNewNote(posX, posY);
+      });
+
+      canvas.addEventListener('mousedown', (e) => {
+        if (e.target !== canvas || STATE.viewMode !== 'canvas') return;
+        isSelecting = true;
+        const rect = canvas.getBoundingClientRect();
+        startX = e.clientX - rect.left;
+        startY = e.clientY - rect.top;
+
+        marquee.style.left = `${startX}px`;
+        marquee.style.top = `${startY}px`;
+        marquee.style.width = '0px';
+        marquee.style.height = '0px';
+        marquee.style.display = 'block';
+
+        if (!e.shiftKey) {
+          STATE.selectedNoteIds.clear();
+          document.querySelectorAll('.sticky-note.is-selected').forEach(el => el.classList.remove('is-selected'));
+          updateBatchToolbar();
+        }
+      });
+
+      window.addEventListener('mousemove', (e) => {
+        if (!isSelecting) return;
+        const rect = canvas.getBoundingClientRect();
+        const currentX = e.clientX - rect.left;
+        const currentY = e.clientY - rect.top;
+
+        const left = Math.min(startX, currentX);
+        const top = Math.min(startY, currentY);
+        const width = Math.abs(currentX - startX);
+        const height = Math.abs(currentY - startY);
+
+        marquee.style.left = `${left}px`;
+        marquee.style.top = `${top}px`;
+        marquee.style.width = `${width}px`;
+        marquee.style.height = `${height}px`;
+
+        const boxRight = left + width;
+        const boxBottom = top + height;
+
+        STATE.notes.forEach(note => {
+          const noteWidth = 250;
+          const noteHeight = 180;
+          const overlap = !(note.x + noteWidth < left || note.x > boxRight || note.y + noteHeight < top || note.y > boxBottom);
+          const el = document.getElementById(note.id);
+          if (overlap) {
+            STATE.selectedNoteIds.add(note.id);
+            if (el) el.classList.add('is-selected');
+          } else if (!e.shiftKey) {
+            STATE.selectedNoteIds.delete(note.id);
+            if (el) el.classList.remove('is-selected');
+          }
+        });
+        updateBatchToolbar();
+      });
+
+      window.addEventListener('mouseup', () => {
+        if (!isSelecting) return;
+        isSelecting = false;
+        marquee.style.display = 'none';
+        updateBatchToolbar();
+      });
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toastMsg');
+      toastMsg.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 2200);
+    }
+
+    function updateNoteStatus(noteId, status) {
+      const n = STATE.notes.find(item => item.id === noteId);
+      if (n) {
+        n.status = status;
+        saveToLocalStorage();
+        renderBoard();
+      }
+    }
+
+    function togglePin(id, event) {
+      if (event) event.stopPropagation();
+      const n = STATE.notes.find(item => item.id === id);
+      if (n) {
+        n.isPinned = !n.isPinned;
+        saveToLocalStorage();
+        renderBoard();
+        showToast(n.isPinned ? '便籤已固定' : '已解除固定，可自由拖曳');
+      }
+    }
+
+    function deleteNote(id, event) {
+      if (event) event.stopPropagation();
+      STATE.notes = STATE.notes.filter(item => item.id !== id);
+      STATE.selectedNoteIds.delete(id);
+      saveToLocalStorage();
+      renderBoard();
+      showToast('便籤已刪除');
+    }
+
+    function duplicateNote(id, event) {
+      if (event) event.stopPropagation();
+      const n = STATE.notes.find(item => item.id === id);
+      if (n) {
+        const copy = JSON.parse(JSON.stringify(n));
+        copy.id = 'note_' + Date.now();
+        copy.x += 25;
+        copy.y += 25;
+        copy.title += ' (副本)';
+        copy.isPinned = false;
+        copy.zIndex = ++STATE.maxZIndex;
+        STATE.notes.unshift(copy);
+        saveToLocalStorage();
+        renderBoard();
+        showToast('已複製便籤');
+      }
+    }
+
+    function toggleChecklist(id, event) {
+      if (event) event.stopPropagation();
+      const n = STATE.notes.find(item => item.id === id);
+      if (n) {
+        n.isChecklist = !n.isChecklist;
+        if (n.isChecklist && (!n.checkItems || n.checkItems.length === 0)) {
+          const lines = n.content.split('\n').filter(l => l.trim().length > 0);
+          n.checkItems = lines.length > 0
+            ? lines.map(line => ({ text: line, done: false }))
+            : [{ text: '新清單項目', done: false }];
+        }
+        saveToLocalStorage();
+        renderBoard();
+      }
+    }
+
+    function toggleCheckItem(noteId, idx, done) {
+      const n = STATE.notes.find(item => item.id === noteId);
+      if (n && n.checkItems && n.checkItems[idx]) {
+        n.checkItems[idx].done = done;
+        saveToLocalStorage();
+        renderBoard();
+      }
+    }
+
+    function addCheckItem(noteId, text) {
+      if (!text.trim()) return;
+      const n = STATE.notes.find(item => item.id === noteId);
+      if (n) {
+        if (!n.checkItems) n.checkItems = [];
+        n.checkItems.push({ text: text.trim(), done: false });
+        saveToLocalStorage();
+        renderBoard();
+      }
+    }
+
+    function updateCheckText(noteId, idx, text) {
+      const n = STATE.notes.find(item => item.id === noteId);
+      if (n && n.checkItems && n.checkItems[idx]) {
+        n.checkItems[idx].text = text;
+        saveToLocalStorage();
+      }
+    }
+
+    function deleteCheckItem(noteId, idx) {
+      const n = STATE.notes.find(item => item.id === noteId);
+      if (n && n.checkItems) {
+        n.checkItems.splice(idx, 1);
+        saveToLocalStorage();
+        renderBoard();
+      }
+    }
+
+    /* Batch Selection Operations */
+    function updateBatchToolbar() {
+      const toolbar = document.getElementById('batchToolbar');
+      const count = STATE.selectedNoteIds.size;
+      if (count > 1) {
+        document.getElementById('batchCountText').textContent = `已選取 ${count} 張便籤`;
+        toolbar.classList.add('show');
+      } else {
+        toolbar.classList.remove('show');
+      }
+    }
+
+    function clearSelection() {
+      STATE.selectedNoteIds.clear();
+      renderBoard();
+    }
+
+    function batchChangeColor(colorId) {
+      STATE.selectedNoteIds.forEach(id => {
+        const n = STATE.notes.find(item => item.id === id);
+        if (n) n.color = colorId;
+      });
+      saveToLocalStorage();
+      renderBoard();
+      showToast('已批次更換顏色');
+    }
+
+    function batchTogglePin() {
+      STATE.selectedNoteIds.forEach(id => {
+        const n = STATE.notes.find(item => item.id === id);
+        if (n) n.isPinned = !n.isPinned;
+      });
+      saveToLocalStorage();
+      renderBoard();
+      showToast('已更新釘選狀態');
+    }
+
+    function batchDeleteNotes() {
+      STATE.notes = STATE.notes.filter(n => !STATE.selectedNoteIds.has(n.id));
+      STATE.selectedNoteIds.clear();
+      saveToLocalStorage();
+      renderBoard();
+      showToast('已批次刪除便籤');
+    }
+
+    function openTagPicker(id, event) {
+      if (event) event.stopPropagation();
+      STATE.activeTaggingId = id;
+      const modal = document.getElementById('tagPickerModal');
+      const input = document.getElementById('customTagInput');
+      const list = document.getElementById('quickTagList');
+      input.value = '';
+
+      const allTags = Array.from(new Set([
+        ...PRESET_TAGS,
+        ...STATE.notes.map(n => n.tag).filter(Boolean)
+      ]));
+
+      const targetNote = STATE.notes.find(n => n.id === id);
+      const currentTag = targetNote ? targetNote.tag : '';
+
+      list.innerHTML = allTags.map(tag => `
+        <button class="tag-chip ${tag === currentTag ? 'active' : ''}" onclick="applyTag('${escapeHTML(tag)}')">
+          #${escapeHTML(tag)}
+        </button>
+      `).join('');
+
+      modal.classList.remove('hidden');
+      setTimeout(() => input.focus(), 50);
+    }
+
+    function closeTagPicker() {
+      document.getElementById('tagPickerModal').classList.add('hidden');
+      STATE.activeTaggingId = null;
+    }
+
+    function applyTag(tagName) {
+      if (STATE.activeTaggingId) {
+        setNoteTag(STATE.activeTaggingId, tagName);
+      }
+      closeTagPicker();
+    }
+
+    function submitTagPicker() {
+      const input = document.getElementById('customTagInput');
+      const val = input.value.trim().replace(/^#/, '');
+      if (val && STATE.activeTaggingId) {
+        setNoteTag(STATE.activeTaggingId, val);
+      }
+      closeTagPicker();
+    }
+
+    function setNoteTag(id, tag, event) {
+      if (event) event.stopPropagation();
+      const n = STATE.notes.find(item => item.id === id);
+      if (n) {
+        n.tag = tag;
+        saveToLocalStorage();
+        renderBoard();
+        if (tag) showToast(`已套用標籤：#${tag}`);
+      }
+    }
+
+    function renderTagChips() {
+      const container = document.getElementById('tagChipsContainer');
+      const tags = Array.from(new Set(STATE.notes.map(n => n.tag).filter(Boolean)));
+
+      container.innerHTML = `
+        <button class="tag-chip ${!STATE.activeTagFilter ? 'active' : ''}" onclick="filterByTag(null)">
+          全部
+        </button>
+      ` + tags.map(tag => `
+        <button class="tag-chip ${STATE.activeTagFilter === tag ? 'active' : ''}" onclick="filterByTag('${escapeHTML(tag)}')">
+          #${escapeHTML(tag)}
+        </button>
+      `).join('');
+    }
+
+    function filterByTag(tag) {
+      STATE.activeTagFilter = tag;
+      renderBoard();
+    }
+
+    function exportDataJSON() {
+      closeDropdowns();
+      const str = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(STATE.notes, null, 2));
+      const dlAnchor = document.createElement('a');
+      dlAnchor.setAttribute("href", str);
+      dlAnchor.setAttribute("download", `sticky_board_backup_${new Date().toISOString().slice(0,10)}.json`);
+      document.body.appendChild(dlAnchor);
+      dlAnchor.click();
+      dlAnchor.remove();
+      showToast('已匯出備份 JSON');
+    }
+
+    function importDataJSON(e) {
+      closeDropdowns();
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const parsed = JSON.parse(event.target.result);
+          if (Array.isArray(parsed)) {
+            STATE.notes = parsed;
+            saveToLocalStorage();
+            renderBoard();
+            showToast('已成功匯入便籤備份！');
+          }
+        } catch (_) {
+          showToast('JSON 格式錯誤，無法讀取');
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = '';
+    }
+
+    function clearAllData() {
+      closeDropdowns();
+      STATE.notes = [];
+      STATE.selectedNoteIds.clear();
+      saveToLocalStorage();
+      renderBoard();
+      showToast('已清空所有便利貼');
+    }
+
+    function loadDefaultDemoNotes() {
+      STATE.notes = [
+        {
+          id: 'note_1',
+          title: '📌 歡迎使用便利貼看板！',
+          content: '• 在空白處按住滑鼠拖曳即可「框選」多張便利貼。\n• 雙擊任意空白處可快速釘上新便利貼。\n• 本工具採用純靜態網頁技術與 LocalStorage，資料隨寫隨存！',
+          color: 'yellow',
+          x: 80,
+          y: 60,
+          rotation: -1.5,
+          isPinned: true,
+          status: 'todo',
+          tag: '指南',
+          createdAt: Date.now() - 3600000,
+          updatedAt: Date.now() - 1800000
+        },
+        {
+          id: 'note_2',
+          title: '本週代辦事項清單',
+          color: 'green',
+          x: 370,
+          y: 70,
+          rotation: 1.8,
+          isPinned: false,
+          isChecklist: true,
+          status: 'doing',
+          checkItems: [
+            { text: '完成產品介面提案', done: true },
+            { text: '回覆設計部門信件', done: false },
+            { text: '預定週四專案討論會議', done: false }
+          ],
+          tag: '工作',
+          createdAt: Date.now() - 7200000,
+          updatedAt: Date.now() - 900000
+        },
+        {
+          id: 'note_3',
+          title: '靈感筆記 & 創意',
+          content: '將深色模式背景融入設計，提升長時間閱讀的舒適度；記得在便籤下方標註更新時間！',
+          color: 'purple',
+          x: 660,
+          y: 80,
+          rotation: -2,
+          isPinned: false,
+          status: 'doing',
+          tag: '想法',
+          createdAt: Date.now() - 5400000,
+          updatedAt: Date.now()
+        },
+        {
+          id: 'note_4',
+          title: '週末採買清單',
+          color: 'pink',
+          x: 200,
+          y: 340,
+          rotation: 1.2,
+          isPinned: false,
+          status: 'done',
+          isChecklist: true,
+          checkItems: [
+            { text: '全脂鮮奶 x 2', done: true },
+            { text: '義大利麵條', done: false },
+            { text: '有機烘焙咖啡豆', done: true }
+          ],
+          tag: '生活',
+          createdAt: Date.now() - 86400000,
+          updatedAt: Date.now() - 3600000
+        }
+      ];
+      saveToLocalStorage();
+    }
+
+    function loadSamplePresets() {
+      closeDropdowns();
+      loadDefaultDemoNotes();
+      renderBoard();
+      showToast('已重新載入範例便籤');
+    }
+
+    function closeDropdowns() {
+      document.getElementById('themeMenu').classList.remove('show');
+      document.getElementById('moreMenu').classList.remove('show');
+    }
+
+    function escapeHTML(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadFromLocalStorage();
+      renderBoard();
+      setupCanvasMarqueeAndInteraction();
+
+      document.getElementById('addNoteBtn').addEventListener('click', () => addNewNote());
+
+      document.getElementById('snapToggleBtn').addEventListener('click', () => {
+        STATE.snapToGrid = !STATE.snapToGrid;
+        updateSnapButtonUI();
+        saveToLocalStorage();
+        showToast(STATE.snapToGrid ? '已開啟網格吸附對齊' : '已關閉網格吸附 (自由擺放)');
+      });
+
+      document.getElementById('themeToggleBtn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        document.getElementById('themeMenu').classList.toggle('show');
+        document.getElementById('moreMenu').classList.remove('show');
+      });
+
+      document.getElementById('moreActionsBtn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        document.getElementById('moreMenu').classList.toggle('show');
+        document.getElementById('themeMenu').classList.remove('show');
+      });
+
+      document.getElementById('searchInput').addEventListener('input', (e) => {
+        STATE.searchQuery = e.target.value;
+        renderBoard();
+      });
+
+      // 支援鍵盤快速鍵刪除框選中的便籤 (Delete 或 Backspace)
+      window.addEventListener('keydown', (e) => {
+        if ((e.key === 'Delete' || e.key === 'Backspace') && STATE.selectedNoteIds.size > 0) {
+          const activeEl = document.activeElement;
+          const isTyping = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.isContentEditable);
+          if (!isTyping) {
+            e.preventDefault();
+            batchDeleteNotes();
+          }
+        }
+      });
+
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('#themeToggleBtn') && !e.target.closest('#moreActionsBtn')) {
+          closeDropdowns();
+        }
+      });
+    });
+  </script>
+</body>
+</html>
